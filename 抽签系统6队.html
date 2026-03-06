@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>六队抽签系统</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --c0:#FF4455;--c1:#2979FF;--c2:#00C853;--c3:#FFD600;
+  --c4:#FF6D00;--c5:#AA00FF;--c6:#607D8B;
+  --l0:#FF445520;--l1:#2979FF20;--l2:#00C85320;--l3:#FFD60020;
+  --l4:#FF6D0020;--l5:#AA00FF20;--l6:#607D8B20;
+  --d0:#FF8899;--d1:#82B1FF;--d2:#69FF9D;--d3:#FFEE58;
+  --d4:#FFAB40;--d5:#CE93D8;--d6:#B0BEC5;
+  --bg:#07090F;--panel:#0D1220;--card:#111827;--card2:#161F30;
+  --bdr:#1C2A42;--txt:#D1DCF0;--muted:#4A6080;--accent:#3B82F6;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans SC','Microsoft YaHei',sans-serif;background:var(--bg);
+     color:var(--txt);min-height:100vh;overflow-x:hidden}
+
+/* background glow */
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(ellipse 70% 40% at 20% 0%,#2979ff0a,transparent),
+    radial-gradient(ellipse 60% 35% at 80% 5%,#aa00ff08,transparent),
+    radial-gradient(ellipse 80% 30% at 50% 100%,#FF445508,transparent)}
+
+.wrap{position:relative;z-index:1;max-width:1440px;margin:0 auto;padding:0 14px 60px}
+
+/* ── Header ── */
+header{text-align:center;padding:28px 0 18px}
+header h1{font-size:clamp(20px,4.5vw,38px);font-weight:900;letter-spacing:4px;line-height:1.15;
+  background:linear-gradient(135deg,#60A5FA,#A78BFA 50%,#F472B6);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent}
+header p{color:var(--muted);font-size:12px;letter-spacing:2px;margin-top:6px}
+
+/* ── Tabs ── */
+.tabs{display:flex;justify-content:center;margin-bottom:22px}
+.tab-inner{display:flex;background:var(--panel);border:1px solid var(--bdr);
+  border-radius:12px;padding:4px;gap:4px}
+.tab{padding:9px 26px;border-radius:9px;cursor:pointer;font-size:14px;font-weight:700;
+     color:var(--muted);border:none;background:transparent;
+     transition:all .22s;letter-spacing:1px;font-family:inherit}
+.tab.on{background:var(--accent);color:#fff;box-shadow:0 0 24px #3B82F640}
+.tab:hover:not(.on){background:var(--card2);color:var(--txt)}
+
+/* ── Panels ── */
+.panel{display:none}.panel.on{display:block}
+
+/* ── Setup Grid ── */
+.setup-top{display:flex;align-items:center;justify-content:space-between;
+  flex-wrap:wrap;gap:10px;margin-bottom:14px}
+.hint{color:var(--muted);font-size:12px;letter-spacing:.5px}
+.team-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
+@media(max-width:1050px){.team-grid{grid-template-columns:repeat(4,1fr)}}
+@media(max-width:580px) {.team-grid{grid-template-columns:repeat(2,1fr)}}
+
+.tcol{border-radius:12px;overflow:hidden;background:var(--panel);
+  border:1px solid var(--bdr);transition:border-color .2s}
+.tcol:nth-child(1){border-color:#FF445530}
+.tcol:nth-child(2){border-color:#2979FF30}
+.tcol:nth-child(3){border-color:#00C85330}
+.tcol:nth-child(4){border-color:#FFD60030}
+.tcol:nth-child(5){border-color:#FF6D0030}
+.tcol:nth-child(6){border-color:#AA00FF30}
+
+.tname-wrap{padding:8px 8px 4px}
+.tname{width:100%;text-align:center;font-weight:900;font-size:14px;
+  border-radius:8px;padding:7px 6px;outline:none;cursor:text;
+  transition:all .18s;letter-spacing:1px;font-family:inherit;border:1px solid transparent}
+
+.tcol:nth-child(1) .tname{background:#FF445518;color:#FF8899;border-color:#FF445540}
+.tcol:nth-child(2) .tname{background:#2979FF18;color:#82B1FF;border-color:#2979FF40}
+.tcol:nth-child(3) .tname{background:#00C85318;color:#69FF9D;border-color:#00C85340}
+.tcol:nth-child(4) .tname{background:#FFD60018;color:#FFEE58;border-color:#FFD60040}
+.tcol:nth-child(5) .tname{background:#FF6D0018;color:#FFAB40;border-color:#FF6D0040}
+.tcol:nth-child(6) .tname{background:#AA00FF18;color:#CE93D8;border-color:#AA00FF40}
+.tname:focus{transform:scale(1.05);box-shadow:0 0 0 2px currentColor}
+
+.plist{padding:4px 8px 8px;display:flex;flex-direction:column;gap:3px}
+.pinp{width:100%;text-align:center;font-size:12px;padding:5px 4px;
+  border:1px solid #ffffff0a;border-radius:6px;outline:none;
+  background:#ffffff07;color:var(--txt);font-family:inherit;transition:all .15s}
+.pinp:focus{border-color:#ffffff25;background:#ffffff12}
+.tcol:nth-child(1) .pinp:focus{border-color:#FF445550;background:#FF445510}
+.tcol:nth-child(2) .pinp:focus{border-color:#2979FF50;background:#2979FF10}
+.tcol:nth-child(3) .pinp:focus{border-color:#00C85350;background:#00C85310}
+.tcol:nth-child(4) .pinp:focus{border-color:#FFD60050;background:#FFD60010}
+.tcol:nth-child(5) .pinp:focus{border-color:#FF6D0050;background:#FF6D0010}
+.tcol:nth-child(6) .pinp:focus{border-color:#AA00FF50;background:#AA00FF10}
+
+/* ── Draw Panel ── */
+.draw-bar{display:flex;align-items:center;justify-content:space-between;
+  flex-wrap:wrap;gap:12px;margin-bottom:16px}
+.draw-info{font-size:14px;color:var(--muted);line-height:1.8}
+.draw-info b{color:var(--txt)}
+.actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+
+.btn-main{display:inline-flex;align-items:center;gap:10px;padding:13px 32px;
+  font-size:15px;font-weight:900;letter-spacing:2px;border:none;cursor:pointer;
+  border-radius:12px;font-family:inherit;
+  background:linear-gradient(135deg,#2563EB,#7C3AED);color:#fff;
+  box-shadow:0 0 28px #3B82F650,0 4px 18px #00000050;
+  transition:all .2s;position:relative;overflow:hidden}
+.btn-main::before{content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,#60A5FA,#A78BFA);opacity:0;transition:opacity .2s}
+.btn-main:hover::before{opacity:1}
+.btn-main:hover{transform:translateY(-2px);box-shadow:0 0 44px #3B82F680,0 8px 28px #00000070}
+.btn-main:active{transform:scale(.97)}
+.btn-main.going .ico{animation:spin .35s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.btn-main .ico,.btn-main .lbl{position:relative;z-index:1}
+
+.btn-sec{background:transparent;border:1px solid var(--bdr);color:var(--muted);
+  padding:10px 20px;border-radius:10px;font-size:13px;cursor:pointer;
+  font-family:inherit;transition:all .2s;font-weight:700;letter-spacing:.5px}
+.btn-sec:hover{border-color:#60A5FA;color:#60A5FA;background:#60A5FA0D}
+
+/* ── Results Table ── */
+.rtable-wrap{border-radius:12px;border:1px solid var(--bdr);overflow:hidden;overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:600px}
+thead th{background:var(--card2);padding:11px 10px;font-size:11px;letter-spacing:1.5px;
+  color:var(--muted);text-align:center;font-weight:700;border-bottom:1px solid var(--bdr)}
+tbody tr{border-bottom:1px solid #ffffff06;transition:background .12s}
+tbody tr:hover{background:#ffffff04}
+tbody tr:last-child{border-bottom:none}
+td{padding:8px;text-align:center;font-size:13px;vertical-align:middle}
+.gn{font-size:11px;color:var(--muted);font-weight:700;width:40px;
+  font-variant-numeric:tabular-nums}
+.chip{display:inline-block;font-weight:700;font-size:13px;
+  border-radius:7px;padding:5px 10px;min-width:76px;letter-spacing:.5px;
+  border:1px solid transparent;transition:transform .1s}
+.chip:hover{transform:scale(1.04)}
+.sd{text-align:left;padding-left:10px}
+.stag{display:inline-block;padding:2px 8px;border-radius:4px;margin:1px 2px;
+  font-size:10px;font-weight:700;letter-spacing:.5px}
+
+/* Per-team colours */
+.c0 .chip,.c0 .stag{background:var(--l0);color:var(--d0);border-color:#FF445540}
+.c1 .chip,.c1 .stag{background:var(--l1);color:var(--d1);border-color:#2979FF40}
+.c2 .chip,.c2 .stag{background:var(--l2);color:var(--d2);border-color:#00C85340}
+.c3 .chip,.c3 .stag{background:var(--l3);color:var(--d3);border-color:#FFD60040}
+.c4 .chip,.c4 .stag{background:var(--l4);color:var(--d4);border-color:#FF6D0040}
+.c5 .chip,.c5 .stag{background:var(--l5);color:var(--d5);border-color:#AA00FF40}
+.c6 .chip,.c6 .stag{background:var(--l6);color:var(--d6);border-color:#607D8B40}
+
+/* Row animation */
+@keyframes rowIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:none}}
+.row-anim{animation:rowIn .28s ease both}
+
+/* Empty state */
+.empty{text-align:center;padding:60px 20px;color:var(--muted)}
+.empty .ico{font-size:48px;opacity:.3;margin-bottom:10px}
+.empty p{font-size:13px;letter-spacing:.5px}
+
+/* Toast */
+#toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(50px);
+  background:var(--card2);border:1px solid var(--bdr);border-radius:10px;
+  padding:11px 24px;font-size:13px;color:var(--txt);z-index:9999;
+  transition:transform .28s,opacity .28s;opacity:0;pointer-events:none;
+  box-shadow:0 8px 30px #00000090;white-space:nowrap}
+#toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>🎲 六队随机抽签系统</h1>
+  <p>6队 · 各16人 · 共24组 · 每组4人 · 组内保证无同队</p>
+</header>
+
+<div class="tabs">
+  <div class="tab-inner">
+    <button class="tab on" onclick="switchTab('setup',this)">✏️ 队伍设置</button>
+    <button class="tab" onclick="switchTab('draw',this)">🎲 开始抽签</button>
+  </div>
+</div>
+
+<!-- SETUP -->
+<div id="p-setup" class="panel on">
+  <div class="setup-top">
+    <div class="hint">👆 点击队名 / 选手名可直接修改，自动保存到浏览器</div>
+    <button class="btn-sec" onclick="resetAll()">↺ 恢复默认</button>
+  </div>
+  <div class="team-grid" id="team-grid"></div>
+</div>
+
+<!-- DRAW -->
+<div id="p-draw" class="panel">
+  <div class="draw-bar">
+    <div class="draw-info">共 <b>24</b> 组 &nbsp;·&nbsp; 每组 <b>4</b> 人 &nbsp;·&nbsp; 组内保证无同队成员</div>
+    <div class="actions">
+      <button class="btn-sec" onclick="exportCSV()">📥 导出 Excel</button>
+      <button class="btn-sec" onclick="exportPDF()">📄 导出20次抽签 PDF</button>
+      <button class="btn-main" id="drawBtn" onclick="runDraw()">
+        <span class="ico">🎲</span><span class="lbl">随机抽签</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Tee time selector -->
+  <div id="tee-config" style="background:var(--panel);border:1px solid var(--bdr);border-radius:12px;padding:14px 18px;margin-bottom:16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+      <div>
+        <span style="font-size:13px;font-weight:700;color:var(--txt);letter-spacing:1px">⛳ 出发顺序设置</span>
+        <span style="font-size:11px;color:var(--muted);margin-left:10px">选择 6 个号码拆成 A/B（共18号 + 6×AB = 24组）</span>
+      </div>
+      <span id="tee-count-badge" style="font-size:12px;font-weight:700;padding:4px 12px;border-radius:20px;background:#3B82F620;color:#60A5FA;border:1px solid #3B82F640">已选 0 / 6</span>
+    </div>
+    <div id="tee-boxes" style="display:flex;flex-wrap:wrap;gap:6px">
+    </div>
+    <div style="margin-top:10px;font-size:11px;color:var(--muted)">
+      当前顺序预览：<span id="tee-preview" style="color:var(--txt);letter-spacing:.5px"></span>
+    </div>
+  </div>
+  <div class="rtable-wrap">
+    <table>
+      <thead><tr>
+        <th>组号</th><th>1号位</th><th>2号位</th><th>3号位</th><th>4号位</th>
+      </tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <div class="empty" id="empty">
+      <div class="ico">🎯</div>
+      <p>点击上方「随机抽签」按钮开始</p>
+    </div>
+  </div>
+</div>
+
+</div><!-- /wrap -->
+<div id="toast"></div>
+
+<script>
+// ── Default data ──────────────────────────────────────────────────────────
+const DEF_TEAMS   = ['A','B','C','D','E','F'];
+const DEF_PLAYERS = DEF_TEAMS.map((t,i)=>Array.from({length:16},(_,p)=>`${t}-${p+1}`));
+
+// ── LocalStorage ──────────────────────────────────────────────────────────
+function load(){try{const s=localStorage.getItem('lotto6');return s?JSON.parse(s):null}catch{return null}}
+function save(){localStorage.setItem('lotto6',JSON.stringify({teams:getTeams(),players:getPlayers()}))}
+function resetAll(){localStorage.removeItem('lotto6');buildGrid(null);toast('已恢复默认设置 ✓')}
+
+function getTeams(){return[...document.querySelectorAll('.tname')].map(e=>e.value.trim()||`队${+e.dataset.i+1}`)}
+function getPlayers(){return Array.from({length:6},(_,i)=>[...document.querySelectorAll(`.pinp[data-t="${i}"]`)].map(e=>e.value.trim()))}
+
+// ── Build setup grid ──────────────────────────────────────────────────────
+function buildGrid(state){
+  const g=document.getElementById('team-grid');
+  g.innerHTML='';
+  for(let i=0;i<6;i++){
+    const tn=(state?.teams||DEF_TEAMS)[i];
+    const pl=(state?.players||DEF_PLAYERS)[i];
+    const col=document.createElement('div');
+    col.className='tcol';
+    col.innerHTML=`<div class="tname-wrap">
+      <input class="tname" data-i="${i}" value="${esc(tn)}" maxlength="8" placeholder="队名">
+    </div><div class="plist" id="pl-${i}"></div>`;
+    g.appendChild(col);
+    const plist=col.querySelector('#pl-'+i);
+    for(let p=0;p<16;p++){
+      const inp=document.createElement('input');
+      inp.className='pinp'; inp.dataset.t=i; inp.dataset.p=p;
+      inp.value=pl[p]||''; inp.placeholder=`选手 ${p+1}`; inp.maxLength=20;
+      inp.addEventListener('change',save);
+      plist.appendChild(inp);
+    }
+  }
+  document.querySelectorAll('.tname').forEach(e=>e.addEventListener('change',save));
+}
+function esc(s){return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;')}
+
+// ── Draw algorithm (weighted, constraint-satisfying) ──────────────────────
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a}
+
+function weightedPick(pool,rem){
+  let tot=pool.reduce((s,i)=>s+rem[i],0);
+  let r=Math.random()*tot;
+  for(const i of pool){r-=rem[i];if(r<=0)return i}
+  return pool[pool.length-1];
+}
+
+function drawGroups(){
+  for(let att=0;att<300000;att++){
+    const rem=[16,16,16,16,16,16];
+    const grps=[];
+    let ok=true;
+    for(let g=0;g<24;g++){
+      const avail=rem.map((r,i)=>r>0?i:-1).filter(i=>i>=0);
+      if(avail.length<4){ok=false;break}
+      const chosen=[];
+      const pool=[...avail];
+      for(let s=0;s<4;s++){
+        const pick=weightedPick(pool,rem);
+        chosen.push(pick);
+        pool.splice(pool.indexOf(pick),1);
+      }
+      grps.push(chosen);
+      chosen.forEach(i=>rem[i]--);
+    }
+    if(ok&&rem.every(r=>r===0))return grps;
+  }
+  return null;
+}
+
+// ── Run draw ──────────────────────────────────────────────────────────────
+let lastResult=null;
+
+function runDraw(){
+  const btn=document.getElementById('drawBtn');
+  btn.classList.add('going'); btn.disabled=true;
+  const teams=getTeams();
+  const rawPlayers=getPlayers();
+  // fill missing names
+  for(let i=0;i<6;i++) while(rawPlayers[i].length<16) rawPlayers[i].push(`${teams[i]}-${rawPlayers[i].length+1}`);
+
+  setTimeout(()=>{
+    const grps=drawGroups();
+    btn.classList.remove('going'); btn.disabled=false;
+    if(!grps){toast('❌ 抽签失败，请重试');return}
+
+    const shuffled=rawPlayers.map(pl=>shuffle([...pl.slice(0,16)]));
+    const idx=new Array(6).fill(0);
+    lastResult=grps.map(gteams=>gteams.map(ti=>({ti,name:shuffled[ti][idx[ti]++],team:teams[ti]})));
+    renderResults(lastResult);
+    save();
+    toast('✅ 抽签完成！共 24 组');
+  },180);
+}
+
+// ── Render ────────────────────────────────────────────────────────────────
+function renderResults(res){
+  const tbody=document.getElementById('tbody');
+  document.getElementById('empty').style.display='none';
+  tbody.innerHTML='';
+  res.forEach((row,gi)=>{
+    const tr=document.createElement('tr');
+    tr.className='row-anim';
+    tr.style.animationDelay=`${gi*15}ms`;
+    const gntd=document.createElement('td');
+    gntd.className='gn'; gntd.textContent=gi+1;
+    tr.appendChild(gntd);
+    const summary=[];
+    row.forEach(({ti,name,team})=>{
+      const td=document.createElement('td');
+      td.className=`c${ti}`;
+      td.innerHTML=`<span class="chip">${name}</span>`;
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+}
+
+// ── Export CSV ────────────────────────────────────────────────────────────
+function exportCSV(){
+  if(!lastResult){toast('请先抽签');return}
+  const header = ['组号','1号位','2号位','3号位','4号位'];
+  const rows = [header];
+  lastResult.forEach((row,gi)=>rows.push([gi+1, ...row.map(r=>r.name)]));
+
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [
+    {wch: 8},
+    {wch: 18},
+    {wch: 18},
+    {wch: 18},
+    {wch: 18},
+  ];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '分组结果');
+  XLSX.writeFile(wb, '分组模型.xlsx');
+  toast('📥 分组模型.xlsx 已下载');
+}
+
+// ── Tee time config ───────────────────────────────────────────────────────
+let splitNums = new Set(); // which numbers 1-18 are split into A/B
+
+function buildTeeBoxes(){
+  const container = document.getElementById('tee-boxes');
+  container.innerHTML = '';
+  for(let n=1; n<=18; n++){
+    const btn = document.createElement('button');
+    btn.id = `tee-${n}`;
+    btn.textContent = n;
+    btn.style.cssText = `width:38px;height:38px;border-radius:8px;font-size:13px;font-weight:700;
+      cursor:pointer;border:1px solid var(--bdr);background:var(--card2);color:var(--muted);
+      transition:all .18s;font-family:inherit`;
+    btn.onclick = () => toggleTee(n);
+    container.appendChild(btn);
+  }
+  updateTeeUI();
+}
+
+function toggleTee(n){
+  if(splitNums.has(n)){ splitNums.delete(n); }
+  else {
+    if(splitNums.size >= 6){ toast('最多只能选6个号码拆分'); return; }
+    splitNums.add(n);
+  }
+  updateTeeUI();
+}
+
+function updateTeeUI(){
+  for(let n=1; n<=18; n++){
+    const btn = document.getElementById(`tee-${n}`);
+    if(!btn) continue;
+    if(splitNums.has(n)){
+      btn.style.background = '#2563EB';
+      btn.style.color = '#fff';
+      btn.style.borderColor = '#3B82F6';
+      btn.textContent = n + ' ↔';
+      btn.style.width = '52px';
+    } else {
+      btn.style.background = 'var(--card2)';
+      btn.style.color = 'var(--muted)';
+      btn.style.borderColor = 'var(--bdr)';
+      btn.textContent = n;
+      btn.style.width = '38px';
+    }
+  }
+  const badge = document.getElementById('tee-count-badge');
+  const cnt = splitNums.size;
+  badge.textContent = `已选 ${cnt} / 6`;
+  badge.style.background = cnt===6 ? '#00C85320' : '#3B82F620';
+  badge.style.color       = cnt===6 ? '#00C853'   : '#60A5FA';
+  badge.style.borderColor = cnt===6 ? '#00C85340' : '#3B82F640';
+
+  // Preview
+  const seq = getTeeSequence();
+  document.getElementById('tee-preview').textContent = seq.join('  ');
+}
+
+function getTeeSequence(){
+  // Build ordered list of 24 tee labels from 1-18, splitting chosen ones into A/B
+  const seq = [];
+  for(let n=1; n<=18; n++){
+    if(splitNums.has(n)){ seq.push(n+'A'); seq.push(n+'B'); }
+    else { seq.push(String(n)); }
+  }
+  return seq; // length = 18 + splitNums.size*1 = 18+6 = 24
+}
+
+function exportPDF(){
+  if(splitNums.size !== 6){
+    toast('⚠️ 请先选择 6 个号码拆成 A/B（当前已选 '+splitNums.size+' 个）');
+    return;
+  }
+
+  const teams = getTeams();
+  const rawPlayers = getPlayers();
+  for(let i=0;i<6;i++) while(rawPlayers[i].length<16) rawPlayers[i].push(`${teams[i]}-${rawPlayers[i].length+1}`);
+
+  const palette = ['#FF4455','#2979FF','#00C853','#FFD600','#FF6D00','#AA00FF'];
+  const teamColorMap = {};
+  teams.forEach((t,i)=>teamColorMap[t]=palette[i]||'#888');
+
+  const teeSeq = getTeeSequence(); // 24 labels
+
+  toast('⏳ 正在生成20次抽签结果...');
+
+  setTimeout(()=>{
+    const allPages = [];
+    for(let round=1; round<=20; round++){
+      const grps = drawGroups();
+      if(!grps){ toast('❌ 第'+round+'次抽签失败，请重试'); return; }
+      const shuffled = rawPlayers.map(pl=>shuffle([...pl.slice(0,16)]));
+      const idx = new Array(6).fill(0);
+      const result = grps.map(gteams=>gteams.map(ti=>({ti, name:shuffled[ti][idx[ti]++], team:teams[ti]})));
+
+      const rows = result.map((row, gi)=>{
+        const teeLabel = teeSeq[gi] || (gi+1);
+        const cells = row.map(({name,team})=>
+          `<td style="border:1px solid #ddd;padding:5px 8px;border-left:3px solid ${teamColorMap[team]||'#ccc'}">${name}</td>`
+        ).join('');
+        const bg = gi%2===0?'#f7f9ff':'#ffffff';
+        // Style tee label: A/B ones get accent color
+        const isAB = String(teeLabel).match(/[AB]$/);
+        const teeLabelHtml = isAB
+          ? `<span style="color:#1565C0;font-weight:900">${teeLabel}</span>`
+          : `<span style="color:#888;font-weight:700">${teeLabel}</span>`;
+        return `<tr style="background:${bg}">
+          <td style="border:1px solid #ddd;padding:5px 8px;text-align:center;width:44px;color:#888;font-weight:700">${gi+1}</td>
+          ${cells}
+          <td style="border:1px solid #ddd;padding:5px 8px;text-align:center;width:52px;background:${isAB?'#E3F2FD':'#f9f9f9'}">${teeLabelHtml}</td>
+        </tr>`;
+      }).join('');
+
+      allPages.push(`
+        <div class="page">
+          <h1>分组模型${round}</h1>
+          <div class="divider"></div>
+          <table>
+            <thead><tr>
+              <th style="width:44px">组号</th>
+              <th>1号位</th><th>2号位</th><th>3号位</th><th>4号位</th>
+              <th style="width:52px">出发顺序</th>
+            </tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+          <div class="footer">
+            <div class="footer-brand">随机抽签系统 · 共24组 · 每组4人</div>
+            <div class="footer-brand">技术支持 &nbsp;·&nbsp; <span>STARLUXE</span></div>
+          </div>
+        </div>
+      `);
+    }
+
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+    <title>分组模型</title>
+    <style>
+      @page{size:A4 landscape;margin:0}
+      *{box-sizing:border-box;margin:0;padding:0}
+      body{font-family:'Microsoft YaHei','PingFang SC','Noto Sans SC',sans-serif;font-size:11.5px;color:#222}
+      .page{padding:10mm 12mm 7mm;page-break-before:always;display:flex;flex-direction:column;gap:8px}
+      .page:first-child{page-break-before:avoid}
+      .footer{margin-top:auto;padding-top:5px;border-top:1px solid #e8e8e8;display:flex;justify-content:space-between;align-items:center}
+      .footer-brand{font-size:9px;color:#aaa;letter-spacing:1px}
+      .footer-brand span{color:#888;font-weight:700;letter-spacing:2px}
+      h1{text-align:center;font-size:17px;color:#1a237e;font-weight:900;letter-spacing:2px}
+      .divider{height:1px;background:#e0e0e0}
+      table{width:100%;border-collapse:collapse;flex:1}
+      thead th{background:#1a237e;color:#fff;padding:7px 8px;font-size:11px;text-align:center;border:1px solid #283593}
+      tbody td{font-size:11.5px;vertical-align:middle}
+    </style>
+    </head><body>
+    ${allPages.join('')}
+    <script>window.onload=()=>{window.print();}<\/script>
+    </body></html>`;
+
+    const w = window.open('','_blank');
+    w.document.write(html);
+    w.document.close();
+    toast('📄 请在打印对话框中选择「另存为PDF」');
+  }, 50);
+}
+
+// ── Tab switch ────────────────────────────────────────────────────────────
+function switchTab(name,el){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));
+  el.classList.add('on');
+  document.getElementById('p-'+name).classList.add('on');
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────────
+let _tt;
+function toast(msg){
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.classList.add('show');
+  clearTimeout(_tt); _tt=setTimeout(()=>el.classList.remove('show'),2600);
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────
+buildGrid(load());
+buildTeeBoxes();
+</script>
+</body>
+</html>
